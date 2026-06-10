@@ -1,7 +1,46 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ALL_FAVORITES_COLLECTION_ID, clearFailedTasks, getTaskFavoriteCollectionIds, useStore, taskMatchesFilterStatus, taskMatchesSearchQuery } from '../store'
+import { useTooltip } from '../hooks/useTooltip'
 import Select from './Select'
 import { ChevronLeftIcon, CollectionManageIcon, FavoriteIcon, TrashIcon } from './icons'
+import ViewportTooltip from './ViewportTooltip'
+
+function SearchActionButton({
+  tooltip,
+  className,
+  disabled = false,
+  onClick,
+  children,
+}: {
+  tooltip: string
+  className: string
+  disabled?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  const tooltipState = useTooltip()
+
+  return (
+    <span className="relative inline-flex" {...tooltipState.handlers}>
+      <button
+        type="button"
+        onClick={() => {
+          tooltipState.dismiss()
+          if (disabled) return
+          onClick()
+        }}
+        disabled={disabled}
+        className={className}
+        aria-label={tooltip}
+      >
+        {children}
+      </button>
+      <ViewportTooltip visible={tooltipState.visible} className="whitespace-nowrap">
+        {tooltip}
+      </ViewportTooltip>
+    </span>
+  )
+}
 
 export default function SearchBar() {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -30,6 +69,7 @@ export default function SearchBar() {
   const setConfirmDialog = useStore((s) => s.setConfirmDialog)
   const inCollectionOverview = filterFavorite && !activeFavoriteCollectionId
   const isFailedFilter = filterStatus === 'error'
+  const favoriteTooltip = activeFavoriteCollectionId ? '返回收藏夹' : filterFavorite ? '退出收藏夹' : '收藏夹'
 
   useEffect(() => {
     const handleDocumentMouseDown = (event: MouseEvent) => {
@@ -91,25 +131,25 @@ export default function SearchBar() {
   return (
     <div ref={rootRef} data-no-drag-select className="mt-6 mb-4 flex gap-3">
       <div className="flex gap-2 flex-shrink-0 z-20">
-        <button
+        <SearchActionButton
+          tooltip={favoriteTooltip}
           onClick={handleFavoriteClick}
           className={`p-2.5 rounded-xl border transition-all ${
             filterFavorite
               ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-500'
               : 'border-gray-200 dark:border-white/[0.08] bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.06]'
           }`}
-          title={activeFavoriteCollectionId ? '返回收藏夹' : filterFavorite ? '退出收藏夹视图' : '收藏夹'}
         >
           {activeFavoriteCollectionId ? <ChevronLeftIcon className="w-5 h-5" /> : <FavoriteIcon filled={filterFavorite} className="w-5 h-5" />}
-        </button>
+        </SearchActionButton>
         {inCollectionOverview && (
-          <button
+          <SearchActionButton
+            tooltip="管理收藏夹"
             onClick={openManageCollectionsModal}
             className="p-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-all"
-            title="管理收藏夹"
           >
             <CollectionManageIcon className="w-5 h-5" />
-          </button>
+          </SearchActionButton>
         )}
         {!inCollectionOverview && (
           <>
